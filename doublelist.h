@@ -16,8 +16,10 @@ class Double_list{
 private:
     Node<Type>  *head = nullptr,
                 *tail = nullptr;
-                //was only used for debugging
+                
+                //was only used for debugging, I would  call it the legacy code
     void recursive_front_delete(Node<Type>*);
+
     void put_node_to_front_without_deletion(Node<Type> *);
 
 public:
@@ -35,16 +37,20 @@ friend class iterator<Type>;
     bool push_back(const Type&);
     bool pop_front(Type&);
     bool pop_back(Type&);
+    //not safe, can invalidate other iterators, pointing to the same value, but would've been solved if shared_ptr and weak_ptr were allowed to be used in lab
+    //so I would like not to write another heaps of code to copy the workings of those 
+    void erase(const Type&);
 
     iterator<Type> search(const Type&);
     iterator<Type> beg();
     iterator<Type> end();
 };
 
-
+//now iterators wont occasionaly invalidate double list
 template<class Type>
     class iterator{
         Node<Type>* ptr = nullptr;
+        //takes care to keep containers members valid
         Double_list<Type>* list = nullptr;
     public:
     friend class Double_list<Type>;
@@ -63,6 +69,16 @@ template<class Type>
     };
 
 
+template<class Type>
+void Double_list<Type>::erase(const Type& value){
+    iterator<Type> iter = beg();
+    bool not_found = true;
+    while(!iter.is_empty() && not_found){
+        if(*iter == value) not_found = false;
+        ++iter;
+    }
+    if(!iter.is_empty()) iter.delete_node();
+}
 template<class Type>
 void Double_list<Type>::put_node_to_front_without_deletion(Node<Type>* ptr){
     if(head != ptr){
@@ -145,10 +161,10 @@ iterator<Type> Double_list<Type>::search(const Type& value){
         if(*iter == value) not_found =false;
         else ++iter;
     }
-
-    if(head != iter.ptr){
-        put_node_to_front_without_deletion(iter.ptr);
-    }
+    if(!not_found)
+        if(head != iter.ptr){
+            put_node_to_front_without_deletion(iter.ptr);
+        }
     return iter;
 }
 
@@ -170,7 +186,8 @@ bool Double_list<Type>::push_front(const Type& value){
     if(is_empty()){
         head = new Node<Type>;
         head->data = value;
-        tail = head; 
+        tail = head;
+        //std::cout<<"triggered as if nullptr"; 
     } else{
         iterator<Type> iter = beg();
         errors_ocurred = iter.add_before_node(value);
